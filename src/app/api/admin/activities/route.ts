@@ -1,6 +1,7 @@
+// Updated admin activity creation to use supabaseAdmin for manual inserts.
 import { NextResponse } from 'next/server';
 
-import { supabase } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 
 const MILES_TO_METERS = 1609.34;
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
   const authFailure = requireAdmin(request);
 
   if (authFailure) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return authFailure;
   }
 
   let body: unknown;
@@ -145,7 +146,7 @@ export async function POST(request: Request) {
     insertPayload.notes = notes;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('activities')
     .insert(insertPayload)
     .select()

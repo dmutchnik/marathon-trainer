@@ -1,3 +1,4 @@
+// Made admin dashboard dynamic and moved manual queries to supabaseAdmin.
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -6,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { supabase } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/db';
+
+export const dynamic = 'force-dynamic';
 
 const resolveBaseUrl = () =>
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -38,7 +41,7 @@ const formatManualDate = (iso: string) =>
   }).format(new Date(iso));
 
 async function getManualActivities(): Promise<ManualActivity[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('activities')
     .select('id, start_time, distance_m, title')
     .eq('source', 'manual')
@@ -135,8 +138,9 @@ async function createActivity(formData: FormData) {
     throw new Error(message || 'Failed to create activity.');
   }
 
+  revalidatePath('/admin');
   revalidatePath('/activities');
-  redirect('/activities');
+  redirect('/admin');
 }
 
 async function syncStrava() {

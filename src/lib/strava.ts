@@ -1,6 +1,7 @@
+// Swapped Strava helpers to use supabaseAdmin and support credential reuse.
 import 'server-only';
 
-import { supabase } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/db';
 
 type StravaCredentialsRow = {
   athlete_id: number;
@@ -22,7 +23,7 @@ type StravaRefreshResponse = {
 const TOKEN_REFRESH_BUFFER_MS = 2 * 60 * 1000; // 2 minutes
 
 export async function getStravaCredentials(): Promise<StravaCredentialsRow> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('strava_credentials')
     .select('athlete_id, access_token, refresh_token, token_type, scope, expires_at')
     .limit(1)
@@ -71,7 +72,7 @@ async function refreshAccessToken(refreshToken: string): Promise<{
   const tokenJson = (await response.json()) as StravaRefreshResponse;
   const expiresAtIso = new Date(tokenJson.expires_at * 1000).toISOString();
 
-  const { data: updatedRows, error: updateError } = await supabase
+  const { data: updatedRows, error: updateError } = await supabaseAdmin
     .from('strava_credentials')
     .update({
       access_token: tokenJson.access_token,
@@ -97,8 +98,10 @@ async function refreshAccessToken(refreshToken: string): Promise<{
   };
 }
 
-export async function getValidAccessToken(): Promise<string> {
-  const credentials = await getStravaCredentials();
+export async function getValidAccessToken(
+  existingCredentials?: StravaCredentialsRow,
+): Promise<string> {
+  const credentials = existingCredentials ?? (await getStravaCredentials());
   const expiresAtMs = Date.parse(credentials.expires_at);
 
   if (Number.isNaN(expiresAtMs) || expiresAtMs - TOKEN_REFRESH_BUFFER_MS <= Date.now()) {

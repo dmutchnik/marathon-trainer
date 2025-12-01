@@ -1,6 +1,7 @@
+// Stored Strava OAuth credentials via supabaseAdmin to bypass RLS.
 import { NextResponse } from 'next/server';
 
-import { supabase } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/db';
 
 type StravaTokenResponse = {
   access_token: string;
@@ -67,7 +68,7 @@ export async function GET(request: Request) {
 
   const expiresAtIso = new Date(tokenJson.expires_at * 1000).toISOString();
 
-  const { error: upsertError } = await supabase.from('strava_credentials').upsert(
+  const { error: upsertError } = await supabaseAdmin.from('strava_credentials').upsert(
     {
       athlete_id: tokenJson.athlete.id,
       athlete_username: tokenJson.athlete.username ?? null,

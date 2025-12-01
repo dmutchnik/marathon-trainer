@@ -1,3 +1,4 @@
+// Updated manual activity edit page to fetch data via supabaseAdmin.
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { supabase } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/db';
 
 const resolveBaseUrl = () =>
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -58,7 +59,7 @@ export default async function EditManualActivityPage({ params }: EditManualActiv
   const resolvedParams = await params;
   const activityId = resolvedParams.id;
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('activities')
     .select(
       'id, start_time, distance_m, moving_time_s, avg_hr, elev_gain_m, type, shoe, notes, title, is_public, perceived_exertion',

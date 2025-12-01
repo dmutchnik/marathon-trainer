@@ -1,26 +1,26 @@
+// Ensured manual activity updates/deletes use supabaseAdmin for RLS-safe access.
 import { NextRequest, NextResponse } from 'next/server';
 
-import { supabase } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 
 const MILES_TO_METERS = 1609.34;
 const FEET_TO_METERS = 0.3048;
 
-type Params = {
-  params: Promise<{ id: string }>;
-};
-
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
 
-export async function PATCH(request: NextRequest, { params }: Params) {
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
   const authFailure = requireAdmin(request);
 
   if (authFailure) {
     return authFailure;
   }
 
-  const resolvedParams = await params;
+  const resolvedParams = await context.params;
   const id = resolvedParams?.id;
   if (!id) {
     return NextResponse.json({ error: 'Missing id' }, { status: 400 });
@@ -88,7 +88,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('activities')
     .update(update)
     .eq('id', id)
@@ -108,20 +108,23 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   return NextResponse.json({ activity: data }, { status: 200 });
 }
 
-export async function DELETE(request: NextRequest, { params }: Params) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
   const authFailure = requireAdmin(request);
 
   if (authFailure) {
     return authFailure;
   }
 
-  const resolvedParams = await params;
+  const resolvedParams = await context.params;
   const id = resolvedParams?.id;
   if (!id) {
     return NextResponse.json({ error: 'Missing id' }, { status: 400 });
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('activities')
     .delete()
     .eq('id', id)

@@ -1,7 +1,8 @@
+// Hardened Strava sync to use supabaseAdmin with clearer credential errors.
 import { NextResponse } from 'next/server';
 
 import { requireAdmin } from '@/lib/auth';
-import { supabase } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/db';
 import {
   StravaSummaryActivity,
   getStravaCredentials,
@@ -20,10 +21,29 @@ export async function POST(request: Request) {
     return authFailure;
   }
 
+  let credentials: Awaited<ReturnType<typeof getStravaCredentials>>;
   try {
-    const accessToken = await getValidAccessToken();
-    const credentials = await getStravaCredentials();
+    credentials = await getStravaCredentials();
+  } catch (error) {
+    console.error('Strava credentials load failed:', error);
+    return NextResponse.json(
+      { error: 'Strava credentials missing or invalid' },
+      { status: 500 },
+    );
+  }
 
+  let accessToken: string;
+  try {
+    accessToken = await getValidAccessToken(credentials);
+  } catch (error) {
+    console.error('Strava access token error:', error);
+    return NextResponse.json(
+      { error: 'Failed to refresh Strava access token' },
+      { status: 500 },
+    );
+  }
+
+  try {
     const response = await fetch(
       'https://www.strava.com/api/v3/athlete/activities?per_page=50',
       {
@@ -84,13 +104,16 @@ export async function POST(request: Request) {
     );
 
     if (rows.length > 0) {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('activities')
         .upsert(rows, { onConflict: 'strava_activity_id' });
 
       if (error) {
         console.error('Failed to upsert Strava activities:', error);
-        throw new Error('Strava upsert failed');
+        return NextResponse.json(
+          { error: 'Failed to store Strava activities' },
+          { status: 500 },
+        );
       }
     }
 
