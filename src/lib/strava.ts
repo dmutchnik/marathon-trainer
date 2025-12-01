@@ -144,6 +144,7 @@ export function mapStravaActivityToDbRow(
   activity: StravaSummaryActivity,
   athleteId: number,
 ): ActivityUpsertRow {
+  const stravaPublicDefault = process.env.STRAVA_PUBLIC_DEFAULT !== 'false';
   const startTime = new Date(activity.start_date).toISOString();
   const preferredType =
     (activity.sport_type && activity.sport_type.trim()) ||
@@ -162,7 +163,7 @@ export function mapStravaActivityToDbRow(
     notes,
     title,
     source: 'strava',
-    is_public: false,
+    is_public: stravaPublicDefault,
     strava_activity_id: activity.id,
     strava_athlete_id: athleteId,
   };
